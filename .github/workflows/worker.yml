@@ -1,0 +1,61 @@
+name: Deploy worker (Cloudflare)
+
+on:
+  push:
+    branches: [main]
+    paths: ['worker/**', '.github/workflows/worker.yml']
+  workflow_dispatch:
+
+concurrency:
+  group: worker
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: lts/*
+          cache: npm
+          cache-dependency-path: worker/package-lock.json
+      - run: npm ci
+        working-directory: worker
+      - run: npm run typecheck && npm test
+        working-directory: worker
+
+      # The repo is public, so personal values live in GitHub repo variables, not in wrangler.toml.
+      - name: Fill in wrangler.toml
+        working-directory: worker
+        env:
+          D1_DATABASE_ID: ${{ vars.D1_DATABASE_ID }}
+          FRONTEND_URL: ${{ vars.FRONTEND_URL }}
+          FRONTEND_ORIGIN: ${{ vars.FRONTEND_ORIGIN }}
+          ALLOWED_EMAIL: ${{ vars.ALLOWED_EMAIL }}
+          GOOGLE_CLIENT_ID: ${{ vars.GOOGLE_CLIENT_ID }}
+        run: |
+          for v in D1_DATABASE_ID FRONTEND_URL FRONTEND_ORIGIN ALLOWED_EMAIL GOOGLE_CLIENT_ID; do
+            [ -n "${!v}" ] || { echo "::error::Missing repository variable $v"; exit 1; }
+          done
+          sed -i \
+            -e "s|REPLACE_WITH_D1_DATABASE_ID|$D1_DATABASE_ID|" \
+            -e "s|^FRONTEND_URL = .*|FRONTEND_URL = \"$FRONTEND_URL\"|" \
+            -e "s|^FRONTEND_ORIGIN = .*|FRONTEND_ORIGIN = \"$FRONTEND_ORIGIN\"|" \
+            -e "s|^ALLOWED_EMAIL = .*|ALLOWED_EMAIL = \"$ALLOWED_EMAIL\"|" \
+            -e "s|^GOOGLE_CLIENT_ID = .*|GOOGLE_CLIENT_ID = \"$GOOGLE_CLIENT_ID\"|" \
+            wrangler.toml
+
+      - uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: worker
+          preCommands: npx wrangler d1 migrations apply coldemails --remote
+          command: deploy
+          secrets: |
+            GOOGLE_CLIENT_SECRET
+            TOKEN_ENC_KEY
+        env:
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          TOKEN_ENC_KEY: ${{ secrets.TOKEN_ENC_KEY }}

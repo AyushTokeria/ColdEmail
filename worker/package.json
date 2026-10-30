@@ -1,0 +1,22 @@
+{
+  "name": "coldemails-worker",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "db:local": "wrangler d1 migrations apply coldemails --local",
+    "db:remote": "wrangler d1 migrations apply coldemails --remote"
+  },
+  "dependencies": {
+    "hono": "^4.13.14"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261023.1",
+    "typescript": "^5.9.0",
+    "vitest": "^5.0.5",
+    "wrangler": "^4.156.0"
+  }
+}

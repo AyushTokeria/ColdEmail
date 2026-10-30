@@ -1,0 +1,21 @@
+name = "coldemails-api"
+main = "src/index.ts"
+compatibility_date = "2026-10-01"
+
+[triggers]
+crons = ["*/5 * * * *"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "coldemails"
+# Replace with the id printed by `wrangler d1 create coldemails`
+database_id = "REPLACE_WITH_D1_DATABASE_ID"
+migrations_dir = "migrations"
+
+[vars]
+# Full URL of the GitHub Pages site (OAuth redirects back here) and its origin (CORS)
+FRONTEND_URL = "https://YOUR_GITHUB_USERNAME.github.io/ColdEmails/"
+FRONTEND_ORIGIN = "https://YOUR_GITHUB_USERNAME.github.io"
+ALLOWED_EMAIL = "you@gmail.com"
+GOOGLE_CLIENT_ID = "REPLACE_WITH_GOOGLE_CLIENT_ID"
+# Secrets (wrangler secret put): GOOGLE_CLIENT_SECRET, TOKEN_ENC_KEY
